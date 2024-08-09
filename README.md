@@ -1,7 +1,9 @@
 # ts-text-parser
-Typescript library to parse text using a defined formal grammar, produce a content tree and eventually render it to text again.
 
-## From source 
+Typescript library to parse text using a defined formal grammar, produce a content tree and eventually render it to text
+again.
+
+## From source
 
 Build node package locally
 
@@ -25,4 +27,9 @@ cd example
 - https://en.wikipedia.org/wiki/Formal_grammar
 - https://en.wikipedia.org/wiki/Metasyntax
 
+# To Do
+
+- [ ] Output ast from parser
+- [ ] Render ast
+- [ ] Read grammar from formatted files (default tokenizers and parsers)
 

@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import {grammar} from "../lib/src/old/grammar"
+import {grammar} from "../lib/src/parser"
 import {lexicon} from "../lib/src/old/lexicon";
 import {render} from "../lib/src/old/render";
 import {ast} from "../lib/src/old/ast";

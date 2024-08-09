@@ -1,3 +1,5 @@
-export {Token, Term, LexerContextConsumer, LexerContextPredicate, LexerContext, Lexicon} from "./types/lexicon"
+export {Token, Term, Lexicon, LexerContextConsumer, LexerContextPredicate, LexerContext} from "./types/lexicon"
 export {lexer, Lexer} from "./lexer"
 export {onMatch as lexerOnMatch} from "./defaults/lexerDefaults"
+export {SyntaxNode, SyntaxNodeFactoryFunction, SyntaxNodeFactoryParams, Grammar, GrammarRule} from "./types/syntax"
+export {parser, GrammarParser} from "./parser"
