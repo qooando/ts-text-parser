@@ -1,0 +1,44 @@
+{
+  "name": "qooando-text-parser",
+  "version": "1.0.0",
+  "description": "Text parser with formal grammar",
+  "private": false,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "./dist/index.js",
+    "./dist/index.d.ts",
+    "./dist/iterators.js",
+    "./dist/lexicon.js",
+    "./dist/grammar.js",
+    "./dist/ast.js",
+    "./dist/render.js"
+  ],
+  "scripts": {
+    "webpack-debug": "npx webpack -w",
+    "webpack": "npx webpack -w --mode=\"production\"",
+    "build": "npx tsc",
+    "pack": "npm pack -pack-destination ./dist",
+    "release": "npm run build && npm run pack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qooando/ts-text-parser.git"
+  },
+  "author": "Qooando",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/qooando/ts-text-parser/issues"
+  },
+  "homepage": "https://github.com/qooando/ts-text-parser#readme",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "node": "^22.6.0",
+    "ts-loader": "^9.5.1",
+    "ts-patch": "^3.1.2",
+    "typescript": "^5.4.2",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

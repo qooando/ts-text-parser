@@ -1,0 +1,42 @@
+<html lang="en">
+<header>
+
+</header>
+<body>
+<h1>Constants</h1>
+<ul>
+    <li>{{ 1234 }}</li>
+    <li>{{ "string" }}</li>
+    <li>{{ True }}</li>
+    <li>{{ False }}</li>
+</ul>
+<h1>Variables</h1>
+<ul>
+    <li>{{ $foo }}</li>
+</ul>
+<h1>If</h1>
+<p>
+    cond1 is {{ if ( $cond1 ) }}OK{{ else }}NOT OK{{ end }}
+</p>
+<h1>Else</h1>
+<p>
+    cond2 is {{ if ( $cond2 ) }}OK{{ else }}NOT OK{{ end }}
+</p>
+<h1>Inline If</h1>
+<p>
+    cond1 is {{ if ( $cond1 ); "OK"; else; "NOT OK"; end }}
+</p>
+<h1>Foreach</h1>
+<ul>
+    {{ foreach ( $item from $items ) }}
+    <li>{{ $item }}</li>
+    {{ end }}
+</ul>
+<h1>Foreach with nested if</h1>
+<ul>
+    {{ foreach ( $item from $items ) }}
+    <li>{{ if ( $item ); $item; "OK"; else; $item; "NOT OK"; end }}</li>
+    {{ end }}
+</ul>
+</body>
+</html>

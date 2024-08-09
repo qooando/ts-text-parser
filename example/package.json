@@ -1,0 +1,34 @@
+{
+  "name": "qooando-text-parser-example",
+  "version": "1.0.0",
+  "description": "Example using qooando-text-parser module",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "build": "npx tsc",
+    "main": "node ./dist/main.js",
+    "build & main": "npm run build && npm run main"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qooando/ts-text-parser.git"
+  },
+  "author": "Qooando",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/qooando/ts-text-parser/issues"
+  },
+  "homepage": "https://github.com/qooando/ts-text-parser#readme",
+  "devDependencies": {
+    "ts-patch": "^3.1.2",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "qooando-text-parser": "file:../lib/dist/qooando-text-parser-1.0.0.tgz"
+  }
+}
