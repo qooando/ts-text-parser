@@ -16,4 +16,20 @@ export namespace syntaxNodeFactory {
 
     export let mergeUp = nonCapturing;
 
+    // export function mergeSameTypeSiblings(ctx: SyntaxNodeFactoryParams): SyntaxNode | SyntaxNode[] {
+    //     if (ctx.node.parent &&
+    //         ctx.node.parent.children[0] &&
+    //         ctx.node.parent.children[0].type === ctx.node.type) {
+    //         if (ctx.node.content) {
+    //             ctx.node.parent.children[0].content += ctx.node.content
+    //         }
+    //         if (ctx.node.children) {
+    //             ctx.node.parent.children[0].children.unshift(...ctx.node.children)
+    //         }
+    //         return []
+    //     }
+    //     return ctx.node;
+    // }
+
+
 }

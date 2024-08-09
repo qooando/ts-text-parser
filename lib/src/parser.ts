@@ -77,7 +77,8 @@ export class GrammarParser {
             returnStep?: ParsingStep
             node: ParsingNode,
             mainNode?: ParsingNode
-            matchingToken?: Token
+            matchingToken?: Token,
+            pathLength: number
         }
 
         let nextIndex = 0;
@@ -87,7 +88,8 @@ export class GrammarParser {
             nestingLevel: 0,
             previousStep: null,
             node: this._startParsingNode,
-            mainNode: this._startParsingNode
+            mainNode: this._startParsingNode,
+            pathLength: 0
         }
 
         let endStep: ParsingStep = null;
@@ -105,6 +107,7 @@ export class GrammarParser {
             /*
              for each token, including when tokenIterator.done is true (no token)
              */
+            endStep = null;
             const _token = tokenIter.value;
             if (this.debug) {
                 console.debug(`Parse ${_token?.term}`);
@@ -132,7 +135,8 @@ export class GrammarParser {
                                     previousStep: _step,
                                     node: n,
                                     mainNode: _step.mainNode,
-                                    returnStep: _step.returnStep
+                                    returnStep: _step.returnStep,
+                                    pathLength: _step.pathLength + 1
                                 }
                             }));
                         break;
@@ -148,12 +152,14 @@ export class GrammarParser {
                                         previousStep: _step,
                                         node: n,
                                         mainNode: returnWalkNode.mainNode,
-                                        returnStep: returnWalkNode.returnStep
+                                        returnStep: returnWalkNode.returnStep,
+                                        pathLength: _step.pathLength + 1
                                     }
                                 }));
                         } else {
-                            // continue just to be sure there is a better match
-                            endStep = _step;
+                            if (!endStep || _step.pathLength < endStep.pathLength) {
+                                endStep = _step;
+                            }
                         }
                         break;
                     case ParsingNodeType.RULE_REFERENCE:
@@ -164,7 +170,8 @@ export class GrammarParser {
                             previousStep: _step,
                             node: nextGrammarNode,
                             mainNode: nextGrammarNode,
-                            returnStep: _step
+                            returnStep: _step,
+                            pathLength: _step.pathLength + 1
                         });
                         break;
                     case ParsingNodeType.TERMINAL:
@@ -182,7 +189,8 @@ export class GrammarParser {
                                         previousStep: _step,
                                         node: n,
                                         mainNode: _step.mainNode,
-                                        returnStep: _step.returnStep
+                                        returnStep: _step.returnStep,
+                                        pathLength: _step.pathLength + 1
                                     }
                                 }));
                         }
