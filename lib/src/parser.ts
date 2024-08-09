@@ -1,4 +1,4 @@
-import {Grammar, SyntaxNodeFactoryFunction} from "./types/syntax";
+import {Grammar, SyntaxNode, SyntaxNodeFactoryFunction} from "./types/syntax";
 import {Token} from "./types/lexicon";
 
 const
@@ -53,6 +53,8 @@ export class GrammarParser {
     _rawRules: Map<string, { consequents: string, nodeFactory?: SyntaxNodeFactoryFunction }>;
     _rawStartRule: string;
 
+    // start from rootItem and populate the graph accordingly
+
     constructor(grammar: Grammar, options: GrammarParserOptions = null) {
         this.debug = options?.debug ?? false
         this.grammar = grammar;
@@ -65,7 +67,7 @@ export class GrammarParser {
         }).join("\n");
     }
 
-    parse(tokens: Generator<Token>) {
+    parse(tokens: Generator<Token>): SyntaxNode {
         const parsingNodes = this._parsingNodes;
 
         type ParsingStep = {
@@ -107,8 +109,13 @@ export class GrammarParser {
             if (this.debug) {
                 console.debug(`Parse ${_token?.term}`);
             }
+            const _visited = new Set<ParsingStep>();
             while (toVisit.length) {
                 const _step = toVisit.shift();
+                if (_visited.has(_step)) {
+                    throw new Error(`Found a loop: ${_step.id}`)
+                }
+                _visited.add(_step);
                 const _node = _step.node;
                 if (this.debug) {
                     console.debug(` ${" ".repeat(_step.nestingLevel)}(${_step.id}) ${_node.id}`);
@@ -161,6 +168,7 @@ export class GrammarParser {
                         });
                         break;
                     case ParsingNodeType.TERMINAL:
+                        _visited.clear()
                         if (_node.mustMatchTerm === _token?.term) {
                             _step.matchingToken = _token;
                             if (this.debug) {
@@ -203,38 +211,76 @@ export class GrammarParser {
             console.error(`Parser error: parser stops, no match for term '${currentTerm.term}': '${currentTerm.content}' at \n${content}`);
         }
 
-        // // FIXME starting from the endWalkNode follow the parent and rebuild the full hierarchy
-        // if (this.debug) {
-        //
-        //     var walkpath = [..._backvisit(endStep)];
-        //     walkpath.reverse()
-        //     console.log(
-        //         walkpath.map(x => " ".repeat(x.nesting)
-        //             + x.grammarNode.id
-        //             + " "
-        //             + "(" + x.ruleGrammarNode.id + ")"
-        //         ).join('\n'));
-        // }
-
-        let parentNodes: Node[] = [];
-        let currentStep = endStep;
-        while (currentStep) {
-            const currentParent = parentNodes[0];
-            const grammarNode = currentStep.node
-            const ruleGrammarNode = currentStep.mainNode
-            switch (grammarNode.nodeType) {
-                case ParsingNodeType.RULE_END:
+        /*
+         build the ast following the steps backwards
+         */
+        let _parentSyntaxNodes: SyntaxNode[] = []
+        let rootSyntaxNode: SyntaxNode = null;
+        let _step = endStep;
+        while (_step) {
+            let _parent = _parentSyntaxNodes[0]
+            if (this.debug) {
+                console.log(`${" ".repeat(_step.nestingLevel)}${_step.mainNode.id}.${_step.node.id}`)
             }
-            currentStep = currentStep.previousStep;
+            switch (_step.node.nodeType) {
+                case ParsingNodeType.RULE_END: {
+                    // append new parent
+                    let _newNode: SyntaxNode | SyntaxNode[] = {
+                        id: _step.mainNode.id,
+                        type: _step.mainNode.originRuleName,
+                        parent: _parent,
+                        children: []
+                    };
+                    _parentSyntaxNodes.unshift(_newNode)
+                    if (_parent) {
+                        if (_step.node.syntaxNodeFactoryFun) {
+                            _newNode = _step.node.syntaxNodeFactoryFun({
+                                node: _newNode
+                            })
+                        }
+                        if (Array.isArray(_newNode)) {
+                            _parent.children.unshift(..._newNode)
+                        } else {
+                            _parent.children.unshift(_newNode)
+                        }
+                    } else {
+                        rootSyntaxNode = _parentSyntaxNodes[0]
+                    }
+                    break;
+                }
+                case ParsingNodeType.RULE_START: {
+                    // remove parent
+                    _parentSyntaxNodes.shift();
+                    break;
+                }
+                case ParsingNodeType.TERMINAL: {
+                    // add as child of current parent
+                    let _newNode: SyntaxNode | SyntaxNode[] = {
+                        id: _step.node.id,
+                        type: _step.matchingToken.term,
+                        content: _step.matchingToken.content,
+                        parent: _parent
+                    }
+                    if (_step.node.syntaxNodeFactoryFun) {
+                        _newNode = _step.node.syntaxNodeFactoryFun({
+                            node: _newNode
+                        })
+                    }
+                    if (Array.isArray(_newNode)) {
+                        _parent.children.unshift(..._newNode)
+                    } else {
+                        _parent.children.unshift(_newNode)
+                    }
+                    break;
+                }
+            }
+            _step = _step.previousStep;
         }
 
-        const outputGraph = {}
-        // start from rootItem and populate the graph accordingly
-        // FIXME populate
-        return outputGraph;
+        return rootSyntaxNode;
     }
 
-    protected _initializeParsingGraph() {
+    _initializeParsingGraph() {
         const grammar = this.grammar;
         this._parsingNodes = new Map();
         this._rawStartRule = grammar[0][0];
@@ -467,7 +513,10 @@ export class GrammarParser {
 
     } // end constructor
 
-    protected addNode(...nodes: ParsingNode[]) {
+    addNode(...nodes
+                :
+                ParsingNode[]
+    ) {
         nodes.forEach(node => {
             if (!this._startParsingNode) {
                 this._startParsingNode = node;
