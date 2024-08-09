@@ -1,4 +1,4 @@
-import {render} from "../../../lib/src/old/render"
+import {render} from "../../../lib/src/render"
 import {ast} from "../../../lib/src/old/ast";
 import {grammar} from "../../../lib/src/parser"
 import {lexicon} from "../../../lib/src/old/lexicon";
