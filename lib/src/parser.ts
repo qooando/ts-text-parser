@@ -1,9 +1,32 @@
-import {ParsingNode, Grammar, ParsingNodeType, SyntaxNodeFactoryFunction} from "./types/syntax";
+import {Grammar, SyntaxNodeFactoryFunction} from "./types/syntax";
 import {Token} from "./types/lexicon";
 
 const
     SUFFIX_BEGIN = "_$BEGIN",
     SUFFIX_END = "_$END";
+
+export enum ParsingNodeType {
+    TERMINAL,
+    RULE_START,
+    RULE_END,
+    RULE_REFERENCE,
+    GROUP_START,
+    GROUP_END
+}
+
+export interface ParsingNode {
+    id: string;
+    nodeType: ParsingNodeType
+    parents: Set<ParsingNode>
+    children: Set<ParsingNode>
+
+    originRuleName?: string,
+    mustMatchTerm?: string,
+    mustExpandToRuleName?: string,
+    groupStartNode?: ParsingNode,
+    groupEndNode?: ParsingNode
+    syntaxNodeFactoryFun?: SyntaxNodeFactoryFunction
+}
 
 function _linkChildren(from: ParsingNode | ParsingNode[], to: ParsingNode | ParsingNode[]) {
     from = Array.isArray(from) ? from : [from];
@@ -43,147 +66,139 @@ export class GrammarParser {
     }
 
     parse(tokens: Generator<Token>) {
-        const self = this;
         const parsingNodes = this._parsingNodes;
 
-        /*
-            for every input term we must check all candidates (OR)
-            and continue to the next symbols and term with the paths that match the term
-         */
-
-        type Step = {
+        type ParsingStep = {
             id: number,
-            nesting: number,
-            previous: Step,
-            return?: Step
-            grammarNode: ParsingNode,
-            ruleGrammarNode?: ParsingNode
-            matchingTerm?: Token
+            nestingLevel: number,
+            previousStep: ParsingStep,
+            returnStep?: ParsingStep
+            node: ParsingNode,
+            mainNode?: ParsingNode
+            matchingToken?: Token
         }
 
         let nextIndex = 0;
 
-        const rootStep: Step = {
+        const rootStep: ParsingStep = {
             id: nextIndex++,
-            nesting: 0,
-            previous: null,
-            grammarNode: this._startParsingNode,
-            ruleGrammarNode: this._startParsingNode
+            nestingLevel: 0,
+            previousStep: null,
+            node: this._startParsingNode,
+            mainNode: this._startParsingNode
         }
 
-        let endStep: Step = null;
-        let toVisitCurrent: Step[] = [rootStep],
-            toVisitNext: Step[] = [];
+        let endStep: ParsingStep = null;
+        let toVisit: ParsingStep[] = [rootStep],
+            toVisitNext: ParsingStep[] = [];
 
-        let termIterator: IteratorResult<Token> = null;
+        let tokenIter: IteratorResult<Token> = null;
 
-        while ((termIterator = tokens.next())) {
-            // termIterator can be done, in that case we need to reach the END of all symbols to visit
-            // without further match
-            const currentTerm = termIterator.value;
+        /*
+            explore the parsing graph to find a covering path
+            visit che path to build the ast
+         */
+
+        while ((tokenIter = tokens.next())) {
+            /*
+             for each token, including when tokenIterator.done is true (no token)
+             */
+            const _token = tokenIter.value;
             if (this.debug) {
-                console.debug(`Parse ${currentTerm?.term}`);
+                console.debug(`Parse ${_token?.term}`);
             }
-            const visitedCurrent: Set<any> = new Set();
-            while (toVisitCurrent.length) {
-                const currentStep = toVisitCurrent.shift();
-                // avoid to visit the same node for this token
-                // NOTE, it was already visited somewhere, its result already matched
-                // if (visitedCurrent.has(currentWalkNode.ruleGrammarNode.id)) {
-                //     continue;
-                // }
-                // visitedCurrent.add(currentWalkNode.ruleGrammarNode.id);
-
-                const currentGrammarNode = currentStep.grammarNode;
+            while (toVisit.length) {
+                const _step = toVisit.shift();
+                const _node = _step.node;
                 if (this.debug) {
-                    console.debug(` ${" ".repeat(currentStep.nesting)}(${currentStep.id}) ${currentGrammarNode.id}`);
+                    console.debug(` ${" ".repeat(_step.nestingLevel)}(${_step.id}) ${_node.id}`);
                 }
-                switch (currentGrammarNode.nodeType) {
+                switch (_node.nodeType) {
                     case ParsingNodeType.RULE_START:
                     case ParsingNodeType.GROUP_START:
                     case ParsingNodeType.GROUP_END:
-                        toVisitCurrent.unshift(...[...currentGrammarNode.children.values()]
+                        toVisit.unshift(...[..._node.children.values()]
                             .map(n => {
                                 return {
                                     id: nextIndex++,
-                                    nesting: currentStep.nesting + (currentGrammarNode.nodeType === ParsingNodeType.GROUP_END ? -1 : +1),
-                                    previous: currentStep,
-                                    grammarNode: n,
-                                    ruleGrammarNode: currentStep.ruleGrammarNode,
-                                    return: currentStep.return
+                                    nestingLevel: _step.nestingLevel + (_node.nodeType === ParsingNodeType.GROUP_END ? -1 : +1),
+                                    previousStep: _step,
+                                    node: n,
+                                    mainNode: _step.mainNode,
+                                    returnStep: _step.returnStep
                                 }
                             }));
                         break;
                     case ParsingNodeType.RULE_END:
-                        currentStep.nesting -= 1;
-                        const returnWalkNode = currentStep.return
+                        _step.nestingLevel -= 1;
+                        const returnWalkNode = _step.returnStep
                         if (returnWalkNode) {
-                            toVisitCurrent.unshift(...[...returnWalkNode.grammarNode.children]
+                            toVisit.unshift(...[...returnWalkNode.node.children]
                                 .map(n => {
                                     return {
                                         id: nextIndex++,
-                                        nesting: returnWalkNode.nesting,
-                                        previous: currentStep,
-                                        grammarNode: n,
-                                        ruleGrammarNode: returnWalkNode.ruleGrammarNode,
-                                        return: returnWalkNode.return
+                                        nestingLevel: returnWalkNode.nestingLevel,
+                                        previousStep: _step,
+                                        node: n,
+                                        mainNode: returnWalkNode.mainNode,
+                                        returnStep: returnWalkNode.returnStep
                                     }
                                 }));
                         } else {
                             // continue just to be sure there is a better match
-                            endStep = currentStep;
+                            endStep = _step;
                         }
                         break;
                     case ParsingNodeType.RULE_REFERENCE:
-                        const nextGrammarNode = parsingNodes.get(currentGrammarNode.mustExpandToRuleName);
-                        toVisitCurrent.unshift({
+                        const nextGrammarNode = parsingNodes.get(_node.mustExpandToRuleName);
+                        toVisit.unshift({
                             id: nextIndex++,
-                            nesting: currentStep.nesting + 1,
-                            previous: currentStep,
-                            grammarNode: nextGrammarNode,
-                            ruleGrammarNode: nextGrammarNode,
-                            return: currentStep
+                            nestingLevel: _step.nestingLevel + 1,
+                            previousStep: _step,
+                            node: nextGrammarNode,
+                            mainNode: nextGrammarNode,
+                            returnStep: _step
                         });
                         break;
                     case ParsingNodeType.TERMINAL:
-                        if (currentGrammarNode.mustMatchTerm === currentTerm?.term) {
-                            currentStep.matchingTerm = currentTerm;
+                        if (_node.mustMatchTerm === _token?.term) {
+                            _step.matchingToken = _token;
                             if (this.debug) {
-                                console.debug(`> Match ${currentTerm?.term}`)
+                                console.debug(`> Match ${_token?.term}`)
                             }
-                            toVisitNext.unshift(...[...currentGrammarNode.children.values()]
+                            toVisitNext.unshift(...[..._node.children.values()]
                                 .map(n => {
                                     return {
                                         id: nextIndex++,
-                                        nesting: currentStep.nesting,
-                                        previous: currentStep,
-                                        grammarNode: n,
-                                        ruleGrammarNode: currentStep.ruleGrammarNode,
-                                        return: currentStep.return
+                                        nestingLevel: _step.nestingLevel,
+                                        previousStep: _step,
+                                        node: n,
+                                        mainNode: _step.mainNode,
+                                        returnStep: _step.returnStep
                                     }
                                 }));
                         }
                         break;
                     default:
-                        throw new Error(`Parsing error: grammar node type not implemented: ${currentGrammarNode.nodeType}`);
+                        throw new Error(`Parsing error: grammar node type not implemented: ${_node.nodeType}`);
                 }
 
             } // end single toVisit element visit
 
-            toVisitCurrent = toVisitNext;
+            toVisit = toVisitNext;
             toVisitNext = [];
 
-            if (termIterator.done || toVisitCurrent.length === 0) {
+            if (tokenIter.done || toVisit.length === 0) {
                 break;
             }
         } // end term visit
 
-        if (!endStep || endStep.ruleGrammarNode !== rootStep.ruleGrammarNode) {
+        if (!endStep || endStep.mainNode !== rootStep.mainNode) {
             console.error(`Parsing error: input doesn't match the grammar`)
         }
 
-        if (!termIterator.done) {
-            const currentTerm = termIterator.value;
+        if (!tokenIter.done) {
+            const currentTerm = tokenIter.value;
             const content = [currentTerm, ...tokens].slice(0, 6).map(t => t.content).join(" ");
             console.error(`Parser error: parser stops, no match for term '${currentTerm.term}': '${currentTerm.content}' at \n${content}`);
         }
@@ -205,12 +220,12 @@ export class GrammarParser {
         let currentStep = endStep;
         while (currentStep) {
             const currentParent = parentNodes[0];
-            const grammarNode = currentStep.grammarNode
-            const ruleGrammarNode = currentStep.ruleGrammarNode
+            const grammarNode = currentStep.node
+            const ruleGrammarNode = currentStep.mainNode
             switch (grammarNode.nodeType) {
                 case ParsingNodeType.RULE_END:
             }
-            currentStep = currentStep.previous;
+            currentStep = currentStep.previousStep;
         }
 
         const outputGraph = {}
@@ -351,6 +366,7 @@ export class GrammarParser {
                         _linkChildren(previousNodes, groupEndNode);
                         previousNodes = [groupStartNode]
                         currentContext.visitedTokens.push(currentToken);
+                        break;
                     }
                     case "?": {
                         if (previousNodes.length !== 1) {
