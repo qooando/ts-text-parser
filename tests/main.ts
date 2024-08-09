@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
-import {grammar} from "../lib/src/grammar"
-import {lexicon} from "../lib/src/lexicon";
-import {render} from "../lib/src/render";
-import {ast} from "../lib/src/ast";
+import {grammar} from "../lib/src/old/grammar"
+import {lexicon} from "../lib/src/old/lexicon";
+import {render} from "../lib/src/old/render";
+import {ast} from "../lib/src/old/ast";
 import * as yaml from "js-yaml";
 // import * as temple from "./base/lang/temple.js";
 import * as temple from "./base/lang/test";

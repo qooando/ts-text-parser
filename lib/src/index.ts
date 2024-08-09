@@ -1,11 +1,3 @@
-import {lexicon} from "./lexicon";
-import {grammar} from "./grammar";
-import {ast} from "./ast";
-import {render} from "./render";
-
-export {
-    lexicon,
-    ast,
-    grammar,
-    render,
-}
+export {Token, Term, LexerContextConsumer, LexerContextPredicate, LexerContext, Lexicon} from "./types/lexicon"
+export {lexer, Lexer} from "./lexer"
+export {onMatch as lexerOnMatch} from "./defaults/lexerDefaults"

@@ -1,7 +1,7 @@
-import {render} from "../../../lib/src/render"
-import {ast} from "../../../lib/src/ast";
-import {grammar} from "../../../lib/src/grammar"
-import {lexicon} from "../../../lib/src/lexicon";
+import {render} from "../../../lib/src/old/render"
+import {ast} from "../../../lib/src/old/ast";
+import {grammar} from "../../../lib/src/old/grammar"
+import {lexicon} from "../../../lib/src/old/lexicon";
 
 let enableIfIsCode = (ctx: lexicon.LexerContext) => ctx.captureCode
 let enableIfIsNotCode = (ctx: lexicon.LexerContext) => !ctx.captureCode
