@@ -29,7 +29,7 @@ export namespace callback {
             let subctx = Object.assign({}, ctx);
             subctx.render = null;
             subctx.renderChildren = null;
-            subctx = renderer.render(node, subctx); // context switch and back
+            [, subctx] = renderer.render(node, subctx); // context switch and back
             ctx.output = subctx.output;
             return ctx;
         }

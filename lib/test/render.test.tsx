@@ -48,7 +48,7 @@ test('Render foo bar string', () => {
     //     output: ""
     // }
     // r.render(ast, renderCtx)
-    let renderCtx = r.render(ast)
-    console.log(renderCtx)
-    expect(renderCtx.output).toBe("foofoobarfoobarfoofoo")
+    let [output, renderCtx] = r.render(ast)
+    console.log(output)
+    expect(output).toBe("foofoobarfoobarfoofoo")
 });

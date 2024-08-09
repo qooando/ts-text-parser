@@ -3,14 +3,17 @@ import {SyntaxNode} from "./types/syntax";
 
 export interface RendererOptions {
     debug?: boolean
+    outputField?: string
 }
 
 export class Renderer<Context extends RendererContext> {
     debug: boolean
+    outputField: string
     _delegate: RendererDelegate<Context>
 
     constructor(delegate: RendererDelegate<Context>, options: RendererOptions = undefined) {
         this.debug = options?.debug ?? false;
+        this.outputField = options?.outputField ?? "output"
         this._delegate = delegate;
     }
 
@@ -21,7 +24,7 @@ export class Renderer<Context extends RendererContext> {
         return ctx;
     }
 
-    render(ast: SyntaxNode, ctx: Context = null): Context {
+    render(ast: SyntaxNode, ctx: Context = null): [any, Context] {
         ctx ??= {depth: 0} as Context;
         ctx.depth ??= 0;
         ctx.contextVariables ??= {};
@@ -67,8 +70,9 @@ export class Renderer<Context extends RendererContext> {
             }
             rule(ast, ctx);
         }
-        return ctx;
+        return [(ctx as any)[this.outputField], ctx];
     }
+
 }
 
 export function renderer<Result>(delegate: RendererDelegate<Result>, options: RendererOptions = undefined) {
