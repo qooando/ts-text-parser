@@ -9,11 +9,9 @@
   "files": [
     "./dist/index.js",
     "./dist/index.d.ts",
-    "./dist/iterators.js",
-    "./dist/lexicon.js",
-    "./dist/grammar.js",
-    "./dist/ast.js",
-    "./dist/render.js"
+    "./dist/**/*.js",
+    "!./dist/qooando-text-parser.js",
+    "./assets"
   ],
   "scripts": {
     "webpack-debug": "npx webpack -w",
